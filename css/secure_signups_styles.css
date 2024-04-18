@@ -1,0 +1,127 @@
+fieldset {
+    border: 1px solid #e5e5e5;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+legend {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+#save-message {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 4px;
+}
+.column-domain_name {
+    width: 80%;
+    height: 45px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.success{ color: black; width: 100%; float: left; background: green}
+.error{ color: black; width: 100%; float: left; background: red}
+.toggle-switch input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-switch .toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 80px;
+    height: 30px;
+    background-color: #2C3338;
+    border-radius: 30px;
+    position: relative;
+    cursor: pointer;
+    padding: 0 5px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+}
+.toggle-switch .toggle-label:after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: white;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.toggle-switch input[type="checkbox"]:checked + .toggle-label {
+    background-color: green;
+}
+
+.toggle-switch input[type="checkbox"]:checked + .toggle-label:after {
+    right: 4px;
+    transform: translateY(-50%);
+    background-color: white;
+}
+
+.toggle-switch input[type="checkbox"]:not(:checked) + .toggle-label > span:nth-child(2) {
+    color: #ffffff; /* Text color for off state */
+    font-weight: bold; /* Bold font for off state */
+    padding: 5px;
+}
+
+.toggle-switch input[type="checkbox"]:checked + .toggle-label > span:nth-child(1) {
+    color: white;
+    font-weight: bold;
+    padding: 5px;
+}
+
+.message-container {
+    position: relative;
+}
+.alert {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    padding: 10px;
+
+}
+#secure_signups_submit_domain{ padding: 0px 20px}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
