@@ -1,6 +1,5 @@
 === Secure Signups ===
  * Plugin Name: Secure Signups
- * Plugin URI:https://daffodilweb.com/secure-signups.php
  * Description: Secure Signups: Safeguard WordPress registrations. Restrict signups to approved domain emails, manage domains from the admin panel.
  * Version: 1.0.0
  * Requires at least: 4.0
