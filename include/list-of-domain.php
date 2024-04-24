@@ -22,6 +22,8 @@ if (!defined('ABSPATH')) {
 </div>
 
 <script>
+    var secure_signups_update_domain_name_nonce = '<?php echo esc_js(wp_create_nonce('secure_signups_update_domain_name')); ?>';
+
     jQuery(document).ready(function($) {
         $(document).on('click', '.column-domain_name, .modify', function() {
             if ($(this).hasClass('modify')) {
@@ -55,7 +57,8 @@ if (!defined('ABSPATH')) {
                         data: {
                             action: 'secure_signups_update_domain_name',
                             domain_id: domainId,
-                            new_domain_name: newDomainName
+                            new_domain_name: newDomainName,
+                            nonce:secure_signups_update_domain_name_nonce
                         },
                         success: function(response) {
                             if (response.success) {

@@ -17,6 +17,10 @@
     </form>
     <div id="save-message" class="alert" style="display: none;"></div>
 </div>
+<script type="text/javascript">
+    var secure_signups_update_domain_status_nonce = '<?php echo esc_js(wp_create_nonce('secure_signups_update_domain_status')); ?>';
+</script>
+
 
 <script>
     jQuery(document).ready(function($) {
@@ -109,7 +113,8 @@
                 data: {
                     action: 'secure_signups_update_domain_status',
                     domain_id: domainId,
-                    new_status: newStatus
+                    new_status: newStatus,
+                    nonce: secure_signups_update_domain_status_nonce // Add the nonce to the AJAX request
                 },
                 success: function(response) {
                     if (response.success) {

@@ -1,16 +1,13 @@
 === Secure Signups ===
- * Plugin Name: Secure Signups
- * Description: Secure Signups: Safeguard WordPress registrations. Restrict signups to approved domain emails, manage domains from the admin panel.
- * Version: 1.0.0
- * Requires at least: 4.0
- * Requires PHP:5.6
- * WordPress tested up to:  6.5
- * Author: Daffodil Web & E-commerce
- * Author URI: https://daffodilweb.com
- * Text Domain: secure-signups
- * License:GPL v2 or later
- * License URI:https://www.gnu.org/licenses/gpl-2.0.html
-
+Contributors: Daffodil Web & E-commerce
+Tags: domain-based registration, secure signups, registration domain filter, restrict domain, whitelist domain
+Requires at least: 4.0
+Tested up to: 6.4
+Requires PHP: 5.6
+Stable tag: 1.0.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Secure Signups helps to filter user registrations based on email domain, enabling a secure and controlled signup process.
 
 
 == Description ==
