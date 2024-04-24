@@ -1,14 +1,13 @@
 === Secure Signups ===
 Contributors: Daffodil Web & E-commerce
 Tags: domain-based registration, secure signups, registration domain filter, restrict domain, whitelist domain
-Requires at least: 4.0
-Tested up to: 6.4
-Requires PHP: 5.6
+Requires at least:  5.0
+Tested up to: 6.5.2
+Requires PHP: 7.3
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Secure Signups helps to filter user registrations based on email domain, enabling a secure and controlled signup process.
-
 
 == Description ==
 
