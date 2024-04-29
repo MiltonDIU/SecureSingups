@@ -6,7 +6,7 @@
  * Version: 1.0.0
  * Requires at least: 5.0
  * Requires PHP:7.3
- * WordPress tested up to: 6.5
+ * WordPress tested up to: 6.5.2
  * Author: Daffodil Web & E-commerce
  * Author URI: https://daffodilweb.com
  * Text Domain: SecureSignups
@@ -31,14 +31,39 @@ function secure_signups_enqueue_styles() {
 add_action('admin_enqueue_scripts', 'secure_signups_enqueue_styles');
 
 function secure_signups_enqueue_scripts() {
+    // Enqueue jQuery
     wp_enqueue_script('jquery');
-    wp_enqueue_script('secure-signups-custom-script', plugins_url('js/custom-script.js', __FILE__), array('jquery'), '1.0.0', true);
-    wp_localize_script('secure-signups-custom-script', 'secure_signups_ajax', array(
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'security' => wp_create_nonce('secure-signups-ajax-nonce'),
-    ));
+
+    // Enqueue the custom script and specify its dependencies, version, and that it should be loaded in the footer
+    wp_enqueue_script(
+        'secure-signups-custom-script',
+        plugins_url('js/custom-script.js', __FILE__),
+        array('jquery'), // jQuery dependency
+        '1.0.0', // Script version
+        true // Load in footer
+    );
+
+    // Localize script with the ajax URL and nonce
+    wp_localize_script(
+        'secure-signups-custom-script',
+        'secure_signups_ajax',
+        array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'security' => wp_create_nonce('secure-signups-ajax-nonce'),
+            'update_domain_status_nonce' => wp_create_nonce('secure_signups_update_domain_status'),
+            'update_domain_name_nonce' => wp_create_nonce('secure_signups_update_domain_name'),
+
+
+        )
+    );
 }
-add_action('wp_enqueue_scripts', 'secure_signups_enqueue_scripts');
+
+// Change the hook to 'admin_enqueue_scripts' for enqueuing admin page scripts
+add_action('admin_enqueue_scripts', 'secure_signups_enqueue_scripts');
+
+
+
+
 // Define the constant
 define('MAX_ALLOWED_ROWS', 10);
 function secure_signups_create_trigger() {
@@ -168,7 +193,7 @@ function secure_signups_settings_page() {
     $settings_table =$dbconnect->prefix . 'secure_signups_settings';
 
     // Prepare SQL query with$dbconnect->prepare()
-    $current_setting =$dbconnect->get_row($dbconnect->prepare("SELECT is_restriction,message,publicly_view,retain_plugin_data FROM $settings_table LIMIT 1"));
+    $current_setting = $dbconnect->get_row($dbconnect->prepare("SELECT is_restriction, message, publicly_view, retain_plugin_data FROM $settings_table WHERE id = %s", '1'));
 
 
     // Include settings.php file using plugin_dir_path()
@@ -234,10 +259,13 @@ function secure_signups_add_new_domain_page() {
 
     // Include files using plugin_dir_path() to generate the correct file paths
     include plugin_dir_path( __FILE__ ) . 'include/new-domain.php';
-
-    // Use$dbconnect->prepare() to prepare the SQL query
-    $domains =$dbconnect->get_results($dbconnect->prepare( "SELECT * FROM $domain_table" ) );
-
+// Define the query with a placeholder (e.g., %d for an integer limit) and an argument (e.g., 0 for no limit, as you want all rows)
+    $query = "SELECT * FROM $domain_table LIMIT %d";
+    $limit = 0; // You can specify a limit here if desired
+// Prepare the query and provide the limit as an argument
+    $prepared_query = $dbconnect->prepare($query, $limit);
+// Fetch the results using the prepared query
+    $domains = $dbconnect->get_results($prepared_query);
     // Include list-of-domain.php file
     include plugin_dir_path( __FILE__ ) . 'include/list-of-domain.php';
 }
