@@ -1,3 +1,4 @@
+<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <div class="wrap">
     <h1 class="section-title"><?php esc_html_e('Add New Domain', 'secure-signups'); ?></h1>
     <form id="secure-signups-new-domain-form">
@@ -9,7 +10,7 @@
                     <td>
                         <input type="text" name="domain_name" id="domain_name" class="regular-text" placeholder="<?php esc_attr_e('gmail.com', 'secure-signups'); ?>" required>
                         &nbsp;&nbsp;
-                        <input type="submit" name="secure_signups_submit_domain" id="secure_signups_submit_domain" class="button button-primary" value="+">
+                        <input type="submit" name="secure_signups_submit_domain" id="secure_signups_submit_domain" class="button button-primary" value="<?php esc_attr_e('+', 'secure-signups'); ?>">
                     </td>
                 </tr>
             </table>

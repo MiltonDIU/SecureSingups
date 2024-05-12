@@ -17,7 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-register_activation_hook(__FILE__, 'secure_signups_install');
+
+// Define the constant
+define('SECURE_SIGNUPS_MAX_ALLOWED_ROWS', 10);
+
 function secure_signups_enqueue_styles() {
     // Enqueue the style with a version parameter
     wp_enqueue_style(
@@ -27,23 +30,17 @@ function secure_signups_enqueue_styles() {
         '1.0.0'
     );
 }
-
 add_action('admin_enqueue_scripts', 'secure_signups_enqueue_styles');
 
 function secure_signups_enqueue_scripts() {
-    // Enqueue jQuery
     wp_enqueue_script('jquery');
-
-    // Enqueue the custom script and specify its dependencies, version, and that it should be loaded in the footer
     wp_enqueue_script(
         'secure-signups-custom-script',
         plugins_url('js/custom-script.js', __FILE__),
-        array('jquery'), // jQuery dependency
-        '1.0.0', // Script version
-        true // Load in footer
+        array('jquery'),
+        '1.0.0',
+        true
     );
-
-    // Localize script with the ajax URL and nonce
     wp_localize_script(
         'secure-signups-custom-script',
         'secure_signups_ajax',
@@ -52,54 +49,24 @@ function secure_signups_enqueue_scripts() {
             'security' => wp_create_nonce('secure-signups-ajax-nonce'),
             'update_domain_status_nonce' => wp_create_nonce('secure_signups_update_domain_status'),
             'update_domain_name_nonce' => wp_create_nonce('secure_signups_update_domain_name'),
-
-
         )
     );
 }
-
-// Change the hook to 'admin_enqueue_scripts' for enqueuing admin page scripts
 add_action('admin_enqueue_scripts', 'secure_signups_enqueue_scripts');
 
+// Register activation hook
+register_activation_hook(__FILE__, 'secure_signups_install');
 
-
-
-// Define the constant
-define('MAX_ALLOWED_ROWS', 10);
-function secure_signups_create_trigger() {
-    global $wpdb;
-    $dbconnect = $wpdb;
-    $table_name = $dbconnect->prefix . 'secure_signups_list_of_domains';
-    $max_allowed_rows = MAX_ALLOWED_ROWS;
-    $trigger_sql = $dbconnect->prepare("
-    CREATE TRIGGER secure_signups_limit_insert_trigger
-    BEFORE INSERT ON $table_name
-    FOR EACH ROW
-    BEGIN
-        DECLARE row_count INT;
-        SELECT COUNT(*) INTO row_count FROM $table_name;
-        IF row_count >= %d THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = %s;
-        END IF;
-    END;",
-        $max_allowed_rows,
-        "Cannot insert more than $max_allowed_rows rows into $table_name"
-    );
-    $dbconnect->query( $trigger_sql );
-}
-
-
+// Install the plugin
 function secure_signups_install() {
     if ( ! current_user_can( 'activate_plugins' ) ) {
         return;
     }
-
     global $wpdb;
-    $dbconnect = $wpdb;
-
-    $list_of_domains_table = $dbconnect->prefix . 'secure_signups_list_of_domains';
-    $settings_table = $dbconnect->prefix . 'secure_signups_settings';
-    $charset_collate = $dbconnect->get_charset_collate();
+    $secure_signups_dbconnect = $wpdb;
+    $list_of_domains_table = $secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
+    $settings_table = $secure_signups_dbconnect->prefix . 'secure_signups_settings';
+    $charset_collate = $secure_signups_dbconnect->get_charset_collate();
 
     // Prepare SQL queries with placeholders
     $sql_list_of_domains = "
@@ -124,17 +91,20 @@ function secure_signups_install() {
             PRIMARY KEY (id)
         ) $charset_collate;";
 
-    // Include wp-admin/includes/upgrade.php for dbDelta function
+//    // Include wp-admin/includes/upgrade.php for dbDelta function
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-
-    // Execute SQL queries using dbDelta
+//
+//    // Execute SQL queries using dbDelta
     dbDelta( $sql_list_of_domains );
     dbDelta( $sql_settings );
 
     // Check if settings table is empty and insert default values if needed
-    $existing_settings = $dbconnect->get_var( $dbconnect->prepare( "SELECT COUNT(*) FROM $settings_table" ));
+//    $existing_settings = $secure_signups_dbconnect->get_var( $secure_signups_dbconnect->prepare( "SELECT COUNT(*) FROM $settings_table" ));
+
+    $existing_settings = $secure_signups_dbconnect->get_var( "SELECT COUNT(*) FROM $settings_table" );
+
     if ( $existing_settings == 0 ) {
-        $dbconnect->insert(
+        $secure_signups_dbconnect->insert(
             $settings_table,
             array(
                 'is_restriction'      => 1,
@@ -147,35 +117,64 @@ function secure_signups_install() {
     // Create trigger
     secure_signups_create_trigger();
 }
+// Create a trigger to limit the number of domains
+function secure_signups_create_trigger() {
+    global $wpdb;
+    $secure_signups_dbconnect = $wpdb;
+    $table_name = $secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
+    $secure_signups_max_allowed_rows = SECURE_SIGNUPS_MAX_ALLOWED_ROWS;
+    $trigger_sql = $secure_signups_dbconnect->prepare("
+    CREATE TRIGGER secure_signups_limit_insert_trigger
+    BEFORE INSERT ON $table_name
+    FOR EACH ROW
+    BEGIN
+        DECLARE row_count INT;
+        SELECT COUNT(*) INTO row_count FROM $table_name;
+        IF row_count >= %d THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = %s;
+        END IF;
+    END;",
+        $secure_signups_max_allowed_rows,
+        "Cannot insert more than $secure_signups_max_allowed_rows rows into $table_name"
+    );
+    $secure_signups_dbconnect->query($trigger_sql);
+}
 
+
+// Register deactivation hook
 register_deactivation_hook(__FILE__, 'secure_signups_uninstall');
-
+// Uninstall the plugin
 function secure_signups_uninstall() {
     if ( ! current_user_can( 'activate_plugins' ) ) {
         return;
     }
 
     global $wpdb;
-    $dbconnect = $wpdb;
+    $secure_signups_dbconnect = $wpdb;
 
-    $settings_table = $dbconnect->prefix . 'secure_signups_settings';
-    $list_of_domains_table = $dbconnect->prefix . 'secure_signups_list_of_domains';
-
+    $settings_table = $secure_signups_dbconnect->prefix . 'secure_signups_settings';
+    $list_of_domains_table = $secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
+    // Drop the trigger
+    $trigger_sql = "DROP TRIGGER IF EXISTS secure_signups_limit_insert_trigger";
+    $secure_signups_dbconnect->query($trigger_sql);
     // Check if the settings table exists
-    if ( $dbconnect->get_var($dbconnect->prepare("SHOW TABLES LIKE '$settings_table'")) == $settings_table ) {
+    $if_table_exist = $secure_signups_dbconnect->get_var($secure_signups_dbconnect->prepare("SHOW TABLES LIKE '%s'",$settings_table));
+    if ( $if_table_exist == $settings_table ) {
 
         // Check if retain_plugin_data is set to 1
-        $retain_data =$dbconnect->get_var($dbconnect->prepare("SELECT retain_plugin_data FROM $settings_table"));
+        $retain_data =$secure_signups_dbconnect->get_var($secure_signups_dbconnect->prepare("SELECT retain_plugin_data FROM $settings_table where retain_plugin_data = %s",1));
         // If retain_plugin_data is set to 1, exit without deleting tables
         if ( $retain_data == 1 ) {
             return;
+        }else{
+            // Drop tables if retain_plugin_data is not set
+            $secure_signups_dbconnect->query( "DROP TABLE IF EXISTS $list_of_domains_table" );
+            $secure_signups_dbconnect->query( "DROP TABLE IF EXISTS $settings_table" );
         }
-        // Drop tables if retain_plugin_data is not set
-       $dbconnect->query( "DROP TABLE IF EXISTS $list_of_domains_table" );
-       $dbconnect->query( "DROP TABLE IF EXISTS $settings_table" );
+
     }
 }
-
+//// Add plugin menu
 function secure_signups_menu() {
     add_menu_page('Secure Signups', 'Secure Signups', 'manage_options', 'secure-signups-menu', 'secure_signups_settings_page');
     add_submenu_page('secure-signups-menu', 'Settings', 'Settings', 'manage_options', 'secure-signups-menu', 'secure_signups_settings_page');
@@ -183,49 +182,47 @@ function secure_signups_menu() {
 }
 add_action('admin_menu', 'secure_signups_menu');
 
+// Display settings page
 function secure_signups_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }
-
     global $wpdb;
-    $dbconnect = $wpdb;
-    $settings_table =$dbconnect->prefix . 'secure_signups_settings';
+    $secure_signups_dbconnect = $wpdb;
+    $settings_table =$secure_signups_dbconnect->prefix . 'secure_signups_settings';
+    $current_setting = $secure_signups_dbconnect->get_row($secure_signups_dbconnect->prepare("SELECT is_restriction, message, publicly_view, retain_plugin_data FROM $settings_table WHERE id = %s", '1'));
 
-    // Prepare SQL query with$dbconnect->prepare()
-    $current_setting = $dbconnect->get_row($dbconnect->prepare("SELECT is_restriction, message, publicly_view, retain_plugin_data FROM $settings_table WHERE id = %s", '1'));
-
-
-    // Include settings.php file using plugin_dir_path()
     include plugin_dir_path( __FILE__ ) . 'include/settings.php';
 }
-
+// Save settings via AJAX
 add_action('wp_ajax_secure_signups_save_settings', 'secure_signups_save_settings');
 
 function secure_signups_save_settings() {
     global $wpdb;
-    $dbconnect = $wpdb;
-
-    // Check nonce verification
-    if (!isset($_POST['secure_signups_nonce']) || !wp_verify_nonce($_POST['secure_signups_nonce'], 'secure_signups_save_settings_action')) {
-        wp_send_json_error("Error: Nonce verification failed.");
+    $secure_signups_dbconnect = $wpdb;
+    if (!wp_verify_nonce( sanitize_text_field( wp_unslash($_POST['secure_signups_nonce'])), 'secure_signups_save_settings_action')) {
+        wp_send_json_error("Error:Security check failed. Please refresh the page and try again.");
+        return;
+    }
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error($secure_signups_dbconnect->prepare("Error: You do not have permission to perform this action."));
         return;
     }
 
-    // Check if the user has the required capabilities
-    if ( isset( $_POST['message'] ) ) {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error($dbconnect->prepare("Error: You do not have permission to perform this action."));
-            return;
-        }
-        $settings_table =$dbconnect->prefix . 'secure_signups_settings';
+    $message = isset($_POST['message']) ? sanitize_text_field($_POST['message']) : '';
+
+    if (!empty($message)) {
+        $settings_table =$secure_signups_dbconnect->prefix . 'secure_signups_settings';
         $is_restriction = isset( $_POST['is_restriction'] ) ? 1 : 0;
-        $message = sanitize_text_field( $_POST['message'] );
         $publicly_view = isset( $_POST['publicly_view'] ) ? 1 : 0;
         $retain_plugin_data = isset( $_POST['retain_plugin_data'] ) ? 1 : 0;
 
-        // Prepare the SQL query with$dbconnect->prepare()
-        $result =$dbconnect->update(
+        $length = strlen($message);
+        if ($length < 1 || $length > 255) {
+            wp_send_json_error("Invalid: The message! Please enter minimum number of character  is 1 and maximum character is 255.");
+            return;
+        }
+        $result =$secure_signups_dbconnect->update(
             $settings_table,
             array(
                 'is_restriction' => $is_restriction,
@@ -239,23 +236,24 @@ function secure_signups_save_settings() {
         );
 
         if ( $result !== false ) {
-            wp_send_json_success($dbconnect->prepare("Success: The domain settings were successfully updated!" ));
+            wp_send_json_success($secure_signups_dbconnect->prepare("Success: The domain settings were successfully updated!" ));
         } else {
-            wp_send_json_error($dbconnect->prepare("Error: There was an error updating the domain settings." ));
+            wp_send_json_error($secure_signups_dbconnect->prepare("Error: There was an error updating the domain settings." ));
         }
     } else {
-        wp_send_json_error($dbconnect->prepare("Error: Insufficient data!") );
+        wp_send_json_error($secure_signups_dbconnect->prepare("Error: Insufficient data!") );
     }
 }
-
+//
+//// Display add new domain page
 function secure_signups_add_new_domain_page() {
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
     global $wpdb;
-    $dbconnect = $wpdb;
-    $domain_table =$dbconnect->prefix . 'secure_signups_list_of_domains';
+    $secure_signups_dbconnect = $wpdb;
+    $domain_table =$secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
 
     // Include files using plugin_dir_path() to generate the correct file paths
     include plugin_dir_path( __FILE__ ) . 'include/new-domain.php';
@@ -263,9 +261,9 @@ function secure_signups_add_new_domain_page() {
     $query = "SELECT * FROM $domain_table LIMIT %d";
     $limit = 0; // You can specify a limit here if desired
 // Prepare the query and provide the limit as an argument
-    $prepared_query = $dbconnect->prepare($query, $limit);
+    $prepared_query = $secure_signups_dbconnect->prepare($query, $limit);
 // Fetch the results using the prepared query
-    $domains = $dbconnect->get_results($prepared_query);
+    $domains = $secure_signups_dbconnect->get_results($prepared_query);
     // Include list-of-domain.php file
     include plugin_dir_path( __FILE__ ) . 'include/list-of-domain.php';
 }
@@ -275,26 +273,35 @@ add_action('wp_ajax_secure_signups_save_new_domain', 'secure_signups_save_new_do
 
 function secure_signups_save_new_domain() {
     global $wpdb;
-    $dbconnect = $wpdb;// Declare global variable
-    if (!isset($_POST['secure_signups_nonce']) || !wp_verify_nonce($_POST['secure_signups_nonce'], 'secure_signups_save_new_domain_action')) {
+    $secure_signups_dbconnect = $wpdb;// Declare global variable
+
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['secure_signups_nonce'])), 'secure_signups_save_new_domain_action')) {
         wp_send_json_error("Error: Nonce verification failed.");
         return;
     }
 
-    if ( isset( $_POST['domain_name'] ) ) {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error($dbconnect->prepare("Error: You do not have permission to perform this action.") );
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error($secure_signups_dbconnect->prepare("Error: You do not have permission to perform this action.") );
+        return;
+    }
+    $domain_name = isset($_POST['domain_name']) ? sanitize_text_field($_POST['domain_name']) : '';
+
+    if (!empty($domain_name)) {
+        $domains_table =$secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
+        // Convert domain name to lowercase
+        $domain_name = strtolower($domain_name);
+        // Prepare and execute query to check if domain already exists
+        $existing_domain =$secure_signups_dbconnect->get_row($secure_signups_dbconnect->prepare( "SELECT * FROM $domains_table WHERE domain_name = %s", $domain_name ) );
+        if ( $existing_domain ) {
+            wp_send_json_error("Error: The domain already exists in the list." );
             return;
         }
 
-        $domains_table =$dbconnect->prefix . 'secure_signups_list_of_domains';
 
-        // Convert domain name to lowercase
-        $domain_name = strtolower( sanitize_text_field( $_POST['domain_name'] ) );
-        // Prepare and execute query to check if domain already exists
-        $existing_domain =$dbconnect->get_row($dbconnect->prepare( "SELECT * FROM $domains_table WHERE domain_name = %s", $domain_name ) );
-        if ( $existing_domain ) {
-            wp_send_json_error("Error: The domain already exists in the list." );
+        // If the length is less than 1 or more than 63 characters, return an error
+        $length = strlen($domain_name);
+        if ($length < 1 || $length > 63) {
+            wp_send_json_error("Invalid: The domain name format is invalid! Please enter a valid domain name.");
             return;
         }
 
@@ -305,14 +312,14 @@ function secure_signups_save_new_domain() {
         }
 
         // Check maximum allowed rows
-        $existing_rows_count =$dbconnect->get_var($dbconnect->prepare( "SELECT COUNT(*) FROM $domains_table" ) );
-        if ( $existing_rows_count >= MAX_ALLOWED_ROWS ) {
-            wp_send_json_error($wpdb->prepare("Info: A maximum of %s domains can be whitelisted in the free version of the plugin.", MAX_ALLOWED_ROWS) );
+        $existing_rows_count =$secure_signups_dbconnect->get_var($secure_signups_dbconnect->prepare( "SELECT COUNT(*) FROM $domains_table" ) );
+        if ( $existing_rows_count >= SECURE_SIGNUPS_MAX_ALLOWED_ROWS ) {
+            wp_send_json_error($secure_signups_dbconnect->prepare("Info: A maximum of %s domains can be whitelisted in the free version of the plugin.", SECURE_SIGNUPS_MAX_ALLOWED_ROWS) );
             return;
         }
 
         // Insert new domain
-        $new =$dbconnect->insert(
+        $result  =$secure_signups_dbconnect->insert(
             $domains_table,
             array(
                 'domain_name' => $domain_name,
@@ -321,64 +328,65 @@ function secure_signups_save_new_domain() {
             array( '%s', '%d' )
         );
 
-        if ( $new ) {
-            wp_send_json_success( $dbconnect->prepare("Success: New domain successfully added!" ));
+        if ( $result ) {
+            wp_send_json_success( $secure_signups_dbconnect->prepare("Success: New domain successfully added!" ));
         } else {
-            wp_send_json_error( $dbconnect->prepare("Error: Failed to add the domain. Please try again." ));
+            wp_send_json_error( $secure_signups_dbconnect->prepare("Error: Failed to add the domain. Please try again." ));
         }
     } else {
-        wp_send_json_error( $dbconnect->prepare("Error: Insufficient data!" ));
+        wp_send_json_error( $secure_signups_dbconnect->prepare("Error: Insufficient data!" ));
     }
 }
 
-add_action('wp_ajax_secure_signups_get_domain_list', 'secure_signups_get_domain_list');
+//add_action('wp_ajax_secure_signups_get_domain_list', 'secure_signups_get_domain_list');
 
 function secure_signups_get_domain_list() {
     global $wpdb;
-    $dbconnect = $wpdb;
+    $secure_signups_dbconnect = $wpdb;
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_send_json_error($dbconnect->prepare("Error: You do not have permission to perform this action." ));
+        wp_send_json_error($secure_signups_dbconnect->prepare("Error: You do not have permission to perform this action." ));
         return;
     }
 
 
-    $domains_table =$dbconnect->prefix . 'secure_signups_list_of_domains';
+    $domains_table =$secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
 
     // Prepare and execute query to fetch domain list
-    $query =$dbconnect->prepare( "SELECT * FROM $domains_table" );
-    $domains =$dbconnect->get_results( $query, ARRAY_A );
+    $query =$secure_signups_dbconnect->prepare( "SELECT * FROM %s",$domains_table );
+    $domains =$secure_signups_dbconnect->get_results( $query, ARRAY_A );
 
     if ( $domains === null ) {
-        wp_send_json_error($dbconnect->prepare("Error: Failed to retrieve domain list.") );
+        wp_send_json_error($secure_signups_dbconnect->prepare("Error: Failed to retrieve domain list.") );
         return;
     }
 
     wp_send_json_success( $domains );
 }
-
+//
 add_action('admin_post_submit_domain', 'secure_signups_submit_domain');
 add_action('wp_ajax_secure_signups_update_domain_status', 'secure_signups_update_domain_status');
 
 function secure_signups_update_domain_status() {
     global $wpdb;
-    $dbconnect = $wpdb;
+    $secure_signups_dbconnect = $wpdb;
 
-    if ( !isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'secure_signups_update_domain_status') ) {
-        wp_send_json_error('Nonce verification failed.');
+    // Check nonce verification
+    if (!wp_verify_nonce( sanitize_text_field(wp_unslash($_POST['nonce'])), 'secure_signups_update_domain_status')) {
+        wp_send_json_error("Error: Nonce verification failed.");
         return;
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_send_json_error($dbconnect->prepare( "Error: You do not have permission to perform this action.") );
+        wp_send_json_error($secure_signups_dbconnect->prepare( "Error: You do not have permission to perform this action.") );
         return;
     }
-    $domain_table =$dbconnect->prefix . 'secure_signups_list_of_domains';
+    $domain_table =$secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
     $domainId = isset( $_POST['domain_id'] ) ? intval( $_POST['domain_id'] ) : 0;
     $newStatus = isset( $_POST['new_status'] ) ? intval( $_POST['new_status'] ) : 0;
 
     if ( $domainId > 0 ) {
         // Prepare and execute the update query
-        $result =$dbconnect->update(
+        $result =$secure_signups_dbconnect->update(
             $domain_table,
             array( 'is_active' => $newStatus ),
             array( 'id' => $domainId ),
@@ -387,12 +395,12 @@ function secure_signups_update_domain_status() {
         );
 
         if ( $result !== false ) {
-            wp_send_json_success($dbconnect->prepare( "Success: The domain status was successfully updated!" ));
+            wp_send_json_success($secure_signups_dbconnect->prepare( "Success: The domain status was successfully updated!" ));
         } else {
-            wp_send_json_error( $dbconnect->prepare("Error: Failed to update the domain status." ));
+            wp_send_json_error( $secure_signups_dbconnect->prepare("Error: Failed to update the domain status." ));
         }
     } else {
-        wp_send_json_error( $dbconnect->prepare("Error: Invalid domain ID provided." ));
+        wp_send_json_error( $secure_signups_dbconnect->prepare("Error: Invalid domain ID provided." ));
     }
 }
 
@@ -400,29 +408,38 @@ add_action('wp_ajax_secure_signups_update_domain_name', 'secure_signups_update_d
 
 function secure_signups_update_domain_name() {
     global $wpdb;
-    $dbconnect = $wpdb;
-    if ( !isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'secure_signups_update_domain_name') ) {
-        wp_send_json_error('Nonce verification failed.');
+    $secure_signups_dbconnect = $wpdb;
+    // Check nonce verification
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'secure_signups_update_domain_name')) {
+        wp_send_json_error("Error: Nonce verification failed.");
         return;
     }
+
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_send_json_error( $dbconnect->prepare("Error: You do not have permission to perform this action." ));
+        wp_send_json_error( $secure_signups_dbconnect->prepare("Error: You do not have permission to perform this action." ));
         return;
     }
+    // Validate and sanitize data
+    $domainId = isset($_POST['domain_id']) ? intval($_POST['domain_id']) : 0;
+    $newDomainName = isset($_POST['new_domain_name']) ? sanitize_text_field($_POST['new_domain_name']) : '';
 
-    if ( isset( $_POST['domain_id'] ) && isset( $_POST['new_domain_name'] ) ) {
 
-        $domain_table =$dbconnect->prefix . 'secure_signups_list_of_domains';
-        $domainId = intval( $_POST['domain_id'] );
-        $newDomainName = strtolower(sanitize_text_field( $_POST['new_domain_name'] ));
+//    if ( isset( $_POST['domain_id'] ) && isset( $_POST['new_domain_name'] ) ) {
+        if ($domainId > 0 && !empty($newDomainName)) {
+        $domain_table =$secure_signups_dbconnect->prefix . 'secure_signups_list_of_domains';
+
+            $length = strlen($newDomainName);
+            if ($length < 1 || $length > 63) {
+                wp_send_json_error("Invalid: The domain name format is invalid! Please enter a valid domain name.");
+                return;
+            }
 
 
         if ( ! preg_match( "/^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/", $newDomainName ) ) {
-            wp_send_json_error( $dbconnect->prepare("Invalid: The domain name format is invalid! Please enter a valid domain name." ));
+            wp_send_json_error( $secure_signups_dbconnect->prepare("Invalid: The domain name format is invalid! Please enter a valid domain name." ));
             return;
         }
-
-        $updated =$dbconnect->update(
+        $updated =$secure_signups_dbconnect->update(
             $domain_table,
             array( 'domain_name' => $newDomainName ),
             array( 'id' => $domainId ),
@@ -431,12 +448,12 @@ function secure_signups_update_domain_name() {
         );
 
         if ( $updated === false ) {
-            wp_send_json_error( $dbconnect->prepare("Error: Failed to update the domain name." ));
+            wp_send_json_error( $secure_signups_dbconnect->prepare("Error: Failed to update the domain name." ));
         } else {
-            wp_send_json_success( $dbconnect->prepare("Success: Domain name successfully updated!" ));
+            wp_send_json_success( $secure_signups_dbconnect->prepare("Success: Domain name successfully updated!" ));
         }
     } else {
-        wp_send_json_error( $dbconnect->prepare("Error: Insufficient data!") );
+        wp_send_json_error("Error: Invalid domain ID or empty domain name.");
     }
 }
 function secure_signups_copy_file_to_mu_plugins_folder() {

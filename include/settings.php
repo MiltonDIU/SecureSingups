@@ -1,8 +1,4 @@
-<?php
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
-}
-?>
+<?php if ( ! defined( 'ABSPATH' ) ) exit;?>
 <div class="wrap">
     <h1 class="section-title"><?php esc_html_e('Secure Signups Settings', 'secure-signups'); ?></h1>
     <form id="secure-signups-settings-form">
@@ -10,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <table class="form-table">
             <tr>
                 <th scope="row"><label for="domain_name"><?php esc_html_e('Public Message', 'secure-signups'); ?></label></th>
-                <td><input type="text" name="message" id="message" class="regular-text" required value="<?php echo esc_attr($current_setting->message); ?>"></td>
+                <td><input type="text" name="message" id="message" class="regular-text"  value="<?php echo esc_attr($current_setting->message); ?>"></td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e('Activate Above Message', 'secure-signups'); ?></th>
@@ -60,7 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             <input type="submit" name="secure_signups_submit_domain" id="secure_signups_submit_domain" class="button button-primary" value="<?php esc_attr_e('Submit', 'secure-signups'); ?>">
         </p>
         <h3>
-            <?php esc_html_e('Want more flexibility and control over your site signups? Stay tuned for the Secure Signups Pro plugin release. Join the waitlist', 'secure-signups'); ?> <a href="https://forms.gle/5ssm5t1ANYFtfrUE9" target="_blank"><?php esc_html_e('here', 'secure-signups'); ?></a>
+            <?php esc_html_e('Want more flexibility and control over your site signups? Stay tuned for the Secure Signups Pro plugin release. Join the waitlist', 'secure-signups'); ?> <a href="<?php echo esc_url('https://forms.gle/5ssm5t1ANYFtfrUE9')?>" target="_blank"><?php esc_html_e('here', 'secure-signups'); ?></a>
         </h3>
     </form>
     <div id="save-message" class="alert" style="display: none;"></div>
