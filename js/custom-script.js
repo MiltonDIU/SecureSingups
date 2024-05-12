@@ -1,27 +1,18 @@
 jQuery(document).ready(function($) {
     $('a.deactivate').on('click', function(e) {
         e.preventDefault(); // Prevent default behavior of deactivation link
-
         var confirmation = confirm('Are you sure you want to deactivate this plugin?'); // Show confirmation dialog
-
         if (confirmation) {
             window.location.href = $(this).attr('href'); // If confirmed, proceed with deactivation
         }
     });
 });
-
-//this script for settings save page
-
 jQuery(document).ready(function($) {
     // Handle form submission
     $('#secure-signups-settings-form').submit(function(e) {
         e.preventDefault();
-
-        // Serialize form data
         var formData = $(this).serialize();
-        // Append nonce to form data
         formData += '&nonce=' + secure_signups_ajax.security;
-        // Perform the AJAX request
         $.ajax({
             type: 'POST',
             url: secure_signups_ajax.ajax_url,
@@ -41,21 +32,16 @@ jQuery(document).ready(function($) {
                         .html(response.data)
                         .show();
                 }
-                // Hide the message after 5 seconds
                 setTimeout(function() {
                     $('#save-message').empty().hide();
                 }, 5000);
             },
             error: function(errorThrown) {
-                // Handle error
-                console.log(errorThrown);
                 $('#save-message')
                     .removeClass()
                     .addClass('alert alert-warning')
                     .html('Error occurred while saving settings.')
                     .show();
-
-                // Hide the message after 5 seconds
                 setTimeout(function() {
                     $('#save-message').empty().hide();
                 }, 5000);
@@ -67,7 +53,6 @@ jQuery(document).ready(function($) {
 
 ///this script for new domain page
 jQuery(document).ready(function($) {
-
     function loadDomainList() {
         $.ajax({
             type: 'POST',
@@ -121,7 +106,6 @@ jQuery(document).ready(function($) {
             url: ajaxurl,
             data: formData + '&action=secure_signups_save_new_domain',
             success: function(response) {
-                console.log(response);
                 if (response.success) {
                     $('#save-message').removeClass().addClass('alert alert-success').html(response.data).show();
                     setTimeout(function() {
@@ -129,7 +113,6 @@ jQuery(document).ready(function($) {
                     }, 5000);
                     loadDomainList();
                 } else {
-                    console.log(response);
                     $('#save-message').removeClass().addClass('alert alert-warning').html(response.data).show();
                     setTimeout(function() {
                         $('#save-message').empty().hide();
@@ -137,7 +120,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function(xhr, status, errorThrown) {
-                console.log(xhr.responseText);
+                // console.log(xhr.responseText);
                 $('#save-message').removeClass().addClass('alert alert-warning').html('Error occurred while adding domain.').show();
                 setTimeout(function() {
                     $('#save-message').empty().hide();
@@ -170,7 +153,7 @@ jQuery(document).ready(function($) {
                         $('#save-message').empty().hide();
                     }, 5000);
                 } else {
-                    $('#save-message').removeClass().addClass('alert alert-danger').html(response.data).show();
+                    $('#save-message').removeClass().addClass('alert alert-warning').html(response.data).show();
                     setTimeout(function() {
                         $('#save-message').empty().hide();
                     }, 5000);
@@ -178,7 +161,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function(errorThrown) {
-                $('#save-message').removeClass().addClass('alert alert-danger').html('Error occurred while updating domain status!').show();
+                $('#save-message').removeClass().addClass('alert alert-warning').html('Error occurred while updating domain status!').show();
                 setTimeout(function() {
                     $('#save-message').empty().hide();
                 }, 5000);
@@ -237,7 +220,8 @@ jQuery(document).ready(function($) {
                             }, 5000);
                             $domainNameCell.text(newDomainName);
                         } else {
-                            $('#save-message').removeClass().addClass('alert alert-success').html(response.data).show();
+                            $('#save-message').removeClass().addClass('alert alert-warning').html(response.data).show();
+
                             setTimeout(function() {
                                 $('#save-message').empty().hide(); // Remove the message after 5 seconds
                             }, 5000);
@@ -246,7 +230,7 @@ jQuery(document).ready(function($) {
                         $domainNameCell.removeClass('editing');
                     },
                     error: function(errorThrown) {
-                        $('#save-message').removeClass().addClass('alert alert-success').html(response.data).show();
+                        $('#save-message').removeClass().addClass('alert alert-warning').html(response.data).show();
                         setTimeout(function() {
                             $('#save-message').empty().hide(); // Remove the message after 5 seconds
                         }, 5000);
